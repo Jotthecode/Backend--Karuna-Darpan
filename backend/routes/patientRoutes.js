@@ -1,23 +1,50 @@
 const express = require('express');
+const bcrypt = require('bcrypt');
 const router = express.Router();
 const Patient = require('../models/Patient');
 
-// Create patient
-// Create patient
+// @route   POST /api/patients/create
+// @desc    Create a new patient
 router.post('/create', async (req, res) => {
-  const { abhaId, email, name, age, phone } = req.body;
+  const {
+    abhaId, email, name, age, phone, password,
+    gender, aadhar, village, state, district,
+    medicalHistory, currentproblems, allergies, currentmedications
+  } = req.body;
+
   try {
     const existing = await Patient.findOne({ email });
     if (existing) return res.status(400).json({ message: 'Patient already exists' });
 
-    const newPatient = new Patient({ abhaId, email, name, age, phone });
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newPatient = new Patient({
+      abhaId,
+      email,
+      name,
+      age,
+      phone,
+      password: hashedPassword,
+      gender,
+      aadhar,
+      village,
+      state,
+      district,
+      medicalHistory,
+      currentproblems,
+      allergies,
+      currentmedications
+    });
+
     await newPatient.save();
     res.status(201).json(newPatient);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
-// Get all patients
+
+// @route   GET /api/patients/getAll
+// @desc    Get all patients
 router.get('/getAll', async (req, res) => {
   try {
     const patients = await Patient.find();
@@ -27,7 +54,8 @@ router.get('/getAll', async (req, res) => {
   }
 });
 
-// Get patient by ID
+// @route   GET /api/patients/:id
+// @desc    Get patient by ID
 router.get('/:id', async (req, res) => {
   try {
     const patient = await Patient.findById(req.params.id);
@@ -38,21 +66,33 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Update patient
-router.put('/update', async (req, res) => {
+// @route   PUT /api/patients/update/:id
+// @desc    Update patient info
+router.put('/update/:id', async (req, res) => {
   try {
-    const updated = await Patient.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const updateFields = { ...req.body };
+
+    if (updateFields.password) {
+      updateFields.password = await bcrypt.hash(updateFields.password, 10);
+    }
+
+    const updated = await Patient.findByIdAndUpdate(req.params.id, updateFields, { new: true });
+    if (!updated) return res.status(404).json({ message: 'Patient not found' });
+
     res.json(updated);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Delete patient
-router.delete('/delete', async (req, res) => {
+// @route   DELETE /api/patients/delete/:id
+// @desc    Delete a patient
+router.delete('/delete/:id', async (req, res) => {
   try {
-    await Patient.findByIdAndDelete(req.params.id);
-    res.json({ message: 'Patient deleted' });
+    const deleted = await Patient.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ message: 'Patient not found' });
+
+    res.json({ message: 'Patient deleted successfully' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
