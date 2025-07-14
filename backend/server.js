@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
@@ -8,6 +9,9 @@ const patientRoutes = require('./routes/patientRoutes');
 const therapistRoutes = require('./routes/therapistRoutes');
 const assistantRoutes = require('./routes/assistantRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const visitRoutes = require('./routes/visitRoutes');
+const performanceRoutes = require('./routes/performance');
+
 
 dotenv.config();
 const app = express();
@@ -21,6 +25,9 @@ app.use('/api/patients', patientRoutes);
 app.use('/api/therapists', therapistRoutes);
 app.use('/api/assistants', assistantRoutes);
 app.use('/api/admins', adminRoutes);
+app.use('/api/visits', visitRoutes);
+app.use('/api/performance', performanceRoutes);
+
 
 // Health check route
 app.get('/', (req, res) => {

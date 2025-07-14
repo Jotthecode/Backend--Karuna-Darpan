@@ -1,5 +1,6 @@
 const express = require('express');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
+
 const router = express.Router();
 const Assistant = require('../models/Assistant');
 
@@ -32,6 +33,35 @@ router.post('/create', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+
+// Assistant Login
+router.post('/login', async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    const assistant = await Assistant.findOne({ email });
+    if (!assistant) {
+      return res.status(401).json({ message: 'Invalid email or password' });
+    }
+
+    const isMatch = await bcrypt.compare(password, assistant.password);
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Invalid email or password' });
+    }
+
+    const assistantData = assistant.toObject();
+    delete assistantData.password;
+
+    // ✅ Add this line to rename _id to id
+    assistantData.id = assistant._id;
+
+    res.json({ message: 'Login successful', assistant: assistantData });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 
 // Get all assistants
 router.get('/getall', async (req, res) => {
@@ -80,5 +110,30 @@ router.delete('/delete/:id', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+// Reset assistant password
+router.post('/reset-password', async (req, res) => {
+  const { email, newPassword } = req.body;
+
+  if (!email || !newPassword) {
+    return res.status(400).json({ message: 'Email and new password are required' });
+  }
+
+  try {
+    const assistant = await Assistant.findOne({ email });
+    if (!assistant) {
+      return res.status(404).json({ message: 'Assistant not found' });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    assistant.password = hashedPassword;
+    await assistant.save();
+
+    res.json({ message: 'Password updated successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 
 module.exports = router;
